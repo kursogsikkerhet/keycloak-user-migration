@@ -21,7 +21,7 @@ public final class ConfigurationProperties {
     public static final String MIGRATE_UNMAPPED_ROLES_PROPERTY = "MIGRATE_UNMAPPED_ROLES";
     public static final String MIGRATE_UNMAPPED_GROUPS_PROPERTY = "MIGRATE_UNMAPPED_GROUPS";
     public static final String VALID_FOR_CLIENT_PROPERTY = "VALID_FOR_CLIENT";
-    public static final String RESTRICT_ROLES_TO_CLIENT = "RESTRICT_ROLES_TO_CLIENT";
+    public static final String RESTRICT_ROLES_TO_CLIENT_PROPERTY = "RESTRICT_ROLES_TO_CLIENT";
 
     private static final List<ProviderConfigProperty> PROPERTIES = List.of(
             new ProviderConfigProperty(URI_PROPERTY,
@@ -71,7 +71,7 @@ public final class ConfigurationProperties {
                     "Migrate unmapped roles",
                     "Whether or not to migrate roles not found in the field above",
                     BOOLEAN_TYPE, true),
-            new ProviderConfigProperty(RESTRICT_ROLES_TO_CLIENT,
+            new ProviderConfigProperty(RESTRICT_ROLES_TO_CLIENT_PROPERTY,
                     "Restrict role actions to client",
                     """
                         If 'Valid Client ID' is set, this will restrict the use roles to those \

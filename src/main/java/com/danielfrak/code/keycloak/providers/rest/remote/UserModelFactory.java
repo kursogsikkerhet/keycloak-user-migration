@@ -171,7 +171,7 @@ public class UserModelFactory {
      */
     private Optional<RoleModel> getMappedRoleModel(RealmModel realm, String roleName) {
         String validForClient = model.getConfig().getFirst(VALID_FOR_CLIENT_PROPERTY);
-        boolean restrictRoles = Boolean.parseBoolean(model.getConfig().getFirst(RESTRICT_ROLES_TO_CLIENT));
+        boolean restrictRoles = Boolean.parseBoolean(model.getConfig().getFirst(RESTRICT_ROLES_TO_CLIENT_PROPERTY));
 
         if (validForClient != null && restrictRoles) {
             ClientModel currentClient = realm.getClientByClientId(validForClient);
