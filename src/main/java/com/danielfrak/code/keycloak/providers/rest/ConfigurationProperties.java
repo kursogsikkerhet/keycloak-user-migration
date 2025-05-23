@@ -15,13 +15,15 @@ public final class ConfigurationProperties {
     public static final String API_HTTP_BASIC_ENABLED_PROPERTY = "API_HTTP_BASIC_ENABLED";
     public static final String API_HTTP_BASIC_USERNAME_PROPERTY = "API_HTTP_BASIC_USERNAME";
     public static final String API_HTTP_BASIC_PASSWORD_PROPERTY = "API_HTTP_BASIC_PASSWORD";
-    public static final String USE_USER_ID_FOR_CREDENTIAL_VERIFICATION = "USE_USER_ID_FOR_CREDENTIAL_VERIFICATION";
+    public static final String USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY = "USE_EMAIL_FOR_CREDENTIAL_VERIFICATION";
     public static final String ROLE_MAP_PROPERTY = "ROLE_MAP";
     public static final String GROUP_MAP_PROPERTY = "GROUP_MAP";
     public static final String MIGRATE_UNMAPPED_ROLES_PROPERTY = "MIGRATE_UNMAPPED_ROLES";
     public static final String MIGRATE_UNMAPPED_GROUPS_PROPERTY = "MIGRATE_UNMAPPED_GROUPS";
     public static final String VALID_FOR_CLIENT_PROPERTY = "VALID_FOR_CLIENT";
     public static final String RESTRICT_ROLES_TO_CLIENT_PROPERTY = "RESTRICT_ROLES_TO_CLIENT";
+    public static final String USE_ID_AS_USERNAME_PROPERTY = "USE_ID_AS_USERNAME";
+    public static final String GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY = "GET_USER_INFO_FROM_ALL_USER_MIGRATIONS";
 
     private static final List<ProviderConfigProperty> PROPERTIES = List.of(
             new ProviderConfigProperty(URI_PROPERTY,
@@ -31,11 +33,11 @@ public final class ConfigurationProperties {
             new ProviderConfigProperty(VALID_FOR_CLIENT_PROPERTY,
                     "Valid for Client ID",
                     """
-                            The migration can be restricted to only migrate users logging in \
-                            using a specific client. Only roles defined on the client will be used. \
-                            New roles will be created on the client instead of in Realm Roles.
-                            Enter a Client ID, or leave blank if valid for all clients.
-                            """,
+                        The migration can be restricted to only migrate users logging in \
+                        using a specific client. Only roles defined on the client will be used. \
+                        New roles will be created on the client instead of in Realm Roles.
+                        Enter a Client ID, or leave blank if valid for all clients.
+                    """,
                     STRING_TYPE,
                     null),
             new ProviderConfigProperty(API_TOKEN_ENABLED_PROPERTY,
@@ -58,10 +60,20 @@ public final class ConfigurationProperties {
                     "Rest client basic auth password",
                     "HTTP basic auth password for legacy user service",
                     PASSWORD, null),
-            new ProviderConfigProperty(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION,
-                    "Use user id for credential verification",
-                    "Use the id of the user instead of the username as the path " +
-                    "parameter when making a credential verification request",
+            new ProviderConfigProperty(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY,
+                    "Use email for credential verification",
+                    "Use the user's email instead of the username as the path " +
+                    "parameter when making the credential verification request.",
+                    BOOLEAN_TYPE, false),
+            new ProviderConfigProperty(USE_ID_AS_USERNAME_PROPERTY,
+                    "Replace username with Keycloak ID",
+                    """
+                        Helps prevent conflicts when importing users from several legacy systems.
+                        The behaviour depends on 'Use email for credential verification':
+                        If `On` the user is created with Keycloak ID as username.
+                        If `Off`, the user will be created using the legacy system username, and updated to use \
+                        the Keycloak ID when the Federation Link is removed.
+                    """,
                     BOOLEAN_TYPE, false),
             new ProviderConfigProperty(ROLE_MAP_PROPERTY,
                     "Legacy role conversion",
@@ -86,7 +98,15 @@ public final class ConfigurationProperties {
             new ProviderConfigProperty(MIGRATE_UNMAPPED_GROUPS_PROPERTY,
                     "Migrate unmapped groups",
                     "Whether or not to migrate groups not found in the field above",
-                    BOOLEAN_TYPE, true)
+                    BOOLEAN_TYPE, true),
+            new ProviderConfigProperty(GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY,
+                    "Get additional user info from other migrations",
+                    """
+                        This will allow other migrations, of this type, to set custom attributes, \
+                        roles and groups that exist in the legacy system that it's configured for.
+                        This is only done when the user is created.
+                    """,
+                    BOOLEAN_TYPE, false)
     );
 
     private ConfigurationProperties() {

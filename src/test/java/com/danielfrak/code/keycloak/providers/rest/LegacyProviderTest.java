@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.danielfrak.code.keycloak.providers.rest.ConfigurationProperties.USE_USER_ID_FOR_CREDENTIAL_VERIFICATION;
+import static com.danielfrak.code.keycloak.providers.rest.ConfigurationProperties.USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY;
 import static com.danielfrak.code.keycloak.providers.rest.remote.TestLegacyUser.aMinimalLegacyUser;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -148,7 +148,7 @@ class LegacyProviderTest {
                 .thenReturn(PasswordCredentialModel.TYPE);
 
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
-        config.put(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION, List.of("false"));
+        config.put(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY, List.of("false"));
         when(model.getConfig()).thenReturn(config);
 
         final String username = "user";
@@ -174,7 +174,7 @@ class LegacyProviderTest {
                 .thenReturn(PasswordCredentialModel.TYPE);
 
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
-        config.put(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION, List.of("false"));
+        config.put(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY, List.of("false"));
         when(model.getConfig()).thenReturn(config);
 
         final String username = "user";
@@ -204,7 +204,7 @@ class LegacyProviderTest {
                 .thenReturn(PasswordCredentialModel.TYPE);
 
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
-        config.put(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION, List.of("true"));
+        config.put(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY, List.of("true"));
         when(model.getConfig()).thenReturn(config);
 
         final String userId = "1234567890";
@@ -235,7 +235,7 @@ class LegacyProviderTest {
                 .thenReturn(PasswordCredentialModel.TYPE);
 
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
-        config.put(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION, List.of("true"));
+        config.put(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY, List.of("true"));
         when(model.getConfig()).thenReturn(config);
 
         final String userId = "1234567890";
@@ -264,7 +264,7 @@ class LegacyProviderTest {
                 .thenReturn(PasswordCredentialModel.TYPE);
 
         MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
-        config.put(USE_USER_ID_FOR_CREDENTIAL_VERIFICATION, List.of("true"));
+        config.put(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY, List.of("true"));
         when(model.getConfig()).thenReturn(config);
 
         final String userId = "1234567890";
