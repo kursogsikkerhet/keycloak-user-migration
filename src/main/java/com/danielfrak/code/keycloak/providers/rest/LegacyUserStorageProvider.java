@@ -8,6 +8,6 @@ import org.keycloak.storage.UserStorageProvider;
 import java.util.Optional;
 
 public interface LegacyUserStorageProvider extends UserStorageProvider {
-    Optional<LegacyUser> getLegacyUserInfo(String email);
+    Optional<LegacyUser> getLegacyUserInfo(UserModel user);
     void updateUserInfo(UserModel user, LegacyUser legacyUser, RealmModel realm);
 }

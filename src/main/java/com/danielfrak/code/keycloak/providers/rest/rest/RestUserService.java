@@ -55,6 +55,11 @@ public class RestUserService implements LegacyUserService {
                 .filter(u -> equalsCaseInsensitive(email, u.email()));
     }
 
+    @Override
+    public Optional<LegacyUser> findByKeycloakId(String keycloakId) {
+        return findLegacyUser(keycloakId);
+    }
+
     private boolean equalsCaseInsensitive(String a, String b) {
         if(a == null || b == null) {
             return false;

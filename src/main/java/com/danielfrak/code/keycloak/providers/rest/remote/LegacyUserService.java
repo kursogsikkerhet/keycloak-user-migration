@@ -24,6 +24,14 @@ public interface LegacyUserService {
     Optional<LegacyUser> findByUsername(String username);
 
     /**
+     * Find user by Keycloak ID
+     *
+     * @param keycloakId The keycloak ID to find user by
+     * @return Optional of legacy user
+     */
+    Optional<LegacyUser> findByKeycloakId(String keycloakId);
+
+    /**
      * Validate given password in legacy user provider.
      *
      * @param username username to validate password for.

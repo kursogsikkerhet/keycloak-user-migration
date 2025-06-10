@@ -23,7 +23,7 @@ public final class ConfigurationProperties {
     public static final String VALID_FOR_CLIENT_PROPERTY = "VALID_FOR_CLIENT";
     public static final String RESTRICT_ROLES_TO_CLIENT_PROPERTY = "RESTRICT_ROLES_TO_CLIENT";
     public static final String USE_ID_AS_USERNAME_PROPERTY = "USE_ID_AS_USERNAME";
-    public static final String GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY = "GET_USER_INFO_FROM_ALL_USER_MIGRATIONS";
+    public static final String PREVENT_ROLE_UPDATE_PROPERTY = "PREVENT_ROLE_UPDATE";
 
     private static final List<ProviderConfigProperty> PROPERTIES = List.of(
             new ProviderConfigProperty(URI_PROPERTY,
@@ -34,11 +34,10 @@ public final class ConfigurationProperties {
                     "Valid for Client ID",
                     """
                         The migration can be restricted to only migrate users logging in \
-                        using a specific client. Only roles defined on the client will be used. \
-                        New roles will be created on the client instead of in Realm Roles.
-                        Enter a Client ID, or leave blank if valid for all clients.
+                        using a specific client.
+                        Select a Client ID, or leave blank if valid for all clients.
                     """,
-                    STRING_TYPE,
+                    CLIENT_LIST_TYPE,
                     null),
             new ProviderConfigProperty(API_TOKEN_ENABLED_PROPERTY,
                     "Rest client Bearer token auth enabled",
@@ -86,9 +85,17 @@ public final class ConfigurationProperties {
             new ProviderConfigProperty(RESTRICT_ROLES_TO_CLIENT_PROPERTY,
                     "Restrict role actions to client",
                     """
-                        If 'Valid Client ID' is set, this will restrict the use roles to those \
-                        defined on that client.
+                        If 'Valid Client ID' is set, this will only use roles defined on the selected client. \
                         New roles will be created on the client instead of in the realm.
+                    """,
+                    BOOLEAN_TYPE, false),
+            new ProviderConfigProperty(PREVENT_ROLE_UPDATE_PROPERTY,
+                    "Prevent role update",
+                    """
+                        Enable if using Keycloak as the authoritative source for roles.
+                        Requires that 'Valid for Client ID' is set. Only uses/checks roles set on the client.
+                        The role will be set if the user has no role for the client, \
+                        but not change or add roles.
                     """,
                     BOOLEAN_TYPE, false),
             new ProviderConfigProperty(GROUP_MAP_PROPERTY,
@@ -98,15 +105,7 @@ public final class ConfigurationProperties {
             new ProviderConfigProperty(MIGRATE_UNMAPPED_GROUPS_PROPERTY,
                     "Migrate unmapped groups",
                     "Whether or not to migrate groups not found in the field above",
-                    BOOLEAN_TYPE, true),
-            new ProviderConfigProperty(GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY,
-                    "Get additional user info from other migrations",
-                    """
-                        This will allow other migrations, of this type, to set custom attributes, \
-                        roles and groups that exist in the legacy system that it's configured for.
-                        This is only done when the user is created.
-                    """,
-                    BOOLEAN_TYPE, false)
+                    BOOLEAN_TYPE, true)
     );
 
     private ConfigurationProperties() {
