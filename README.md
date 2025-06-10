@@ -182,8 +182,8 @@ performed to `http://www.old-legacy-system.com/auth/bob`, with the body:
 }
 ```
 
-If the plugin is configured to use the user id as the path parameter for the credential verification request, the `POST`
-request will be performed to `http://www.old-legacy-system.com/auth/12345678`, instead.
+If the plugin is configured to use the user email as the path parameter for the credential verification request, the `POST`
+request will be performed to `http://www.old-legacy-system.com/auth/bob%40company.com`, instead.
 
 As this is the correct password, the user will be logged in. After the first successful login, the federation link to
 the legacy system is severed and any interactions with the user will be done completely through Keycloak.
@@ -308,6 +308,28 @@ If basic auth is enabled, the username and password will be sent in the authoriz
 Authorization: Basic base64encode(username:password)
 ```
 
+### Use email for credential verification
+
+When doing the request to validate the credentials against the legacy system, this will use email address instead of
+username in the path. The value is URL encoded.  
+Setting `Off`:
+```
+http://www.old-legacy-system.com/auth/bob
+```
+Setting `On`
+```
+http://www.old-legacy-system.com/auth/bob%40company.com
+```
+
+### Replace username with Keycloak ID
+
+Uses the Keycloak ID as username. Depending on the setting `Use email for credential verification` the username is
+either:
+   * If `On`: Set when the user is created
+   * If `Off`: User is created with the username from the legacy system, when the Federation Link is removed
+     the username is replaced with the Keycloak ID
+
+
 ### Legacy role conversion
 
 ![Conversion](readme-images/config_conversion.png)
@@ -320,7 +342,7 @@ automatically map legacy roles to Keycloak roles, by specifying the mapping in t
 This switch can be toggled to decide whether roles which are not defined in the legacy role conversion map should be
 migrated anyway or simply ignored.
 
-### Restrict to client roles
+### Restrict role actions to client
 
 If enabled, and 'Valid for Client ID' is set, only roles defined on that client will be used. If migration
 can create roles, they will be created on the client.  
@@ -336,6 +358,19 @@ automatically map legacy groups to Keycloak groups, by specifying the mapping in
 
 This switch can be toggled to decide whether groups which are not defined in the legacy group conversion map should be
 migrated anyway or simply ignored.
+
+### Get additional user info from other migrations
+
+If having multiple legacy systems that users will be migrated from, and a user can have an account in several, this
+can be enabled to call other migrations, allowing them to get user info from the legacy system they are configured for,
+and update the Keycloak user. The call is done to the user info endpoint using the email address.
+The info that is set in Keycloak is:
+ - Role
+ - Group
+ - Custom attributes
+
+It is recommended to have the migrations configured for a client, `Valid for Client ID`, and have setting
+`Restrict role actions to client` set to `On`.
 
 ## Totp
 

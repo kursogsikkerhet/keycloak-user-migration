@@ -18,6 +18,7 @@ import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -31,7 +32,7 @@ import java.util.stream.Stream;
         // No easy way to reduce the dependencies of this class:
         "java:S1200"
 )
-public class LegacyProvider implements UserStorageProvider,
+public class LegacyProvider implements LegacyUserStorageProvider,
         UserLookupProvider,
         CredentialInputUpdater,
         CredentialInputValidator,
@@ -74,9 +75,10 @@ public class LegacyProvider implements UserStorageProvider,
     }
 
     private String getUserIdentifier(UserModel userModel) {
-        var userIdConfig = model.getConfig().getFirst(ConfigurationProperties.USE_USER_ID_FOR_CREDENTIAL_VERIFICATION);
-        var useUserId = Boolean.parseBoolean(userIdConfig);
-        return useUserId ? userModel.getId() : userModel.getUsername();
+        boolean useEmail = Boolean.parseBoolean(
+            model.getConfig().getFirst(ConfigurationProperties.USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY)
+        );
+        return useEmail ? userModel.getEmail() : userModel.getUsername();
     }
 
     private boolean passwordDoesNotBreakPolicy(RealmModel realmModel, UserModel userModel, String password) {
@@ -120,6 +122,7 @@ public class LegacyProvider implements UserStorageProvider,
     @Override
     public boolean updateCredential(RealmModel realm, UserModel user, CredentialInput input) {
         severFederationLink(user);
+        setIdAsUsername(user);
         return false;
     }
 
@@ -128,6 +131,16 @@ public class LegacyProvider implements UserStorageProvider,
         String link = user.getFederationLink();
         if (link != null && !link.isBlank()) {
             user.setFederationLink(null);
+        }
+    }
+
+    private void setIdAsUsername(UserModel user) {
+        boolean idAsUsername = Boolean.parseBoolean(
+            model.getConfig().getFirst(ConfigurationProperties.USE_ID_AS_USERNAME_PROPERTY)
+        );
+
+        if (idAsUsername && !user.getUsername().equals(user.getId())) {
+            user.setUsername(user.getId());
         }
     }
 
@@ -168,11 +181,26 @@ public class LegacyProvider implements UserStorageProvider,
                     }
                     return !duplicate;
                 })
-                .map(u -> userModelFactory.create(u, realm))
+                .map(u -> {
+                    u.attributes().put("Migration handler", List.of(model.getName()));
+                    UserModel newUser = userModelFactory.create(u, realm);
+                    getUserInfoFromOthers(newUser);
+                    return newUser;
+                })
                 .orElseGet(() -> {
                     LOG.warnf("User not found in external repository: %s", username);
                     return null;
                 });
+    }
+
+    @Override
+    public Optional<LegacyUser> getLegacyUserInfo(String email) {
+        return legacyUserService.findByEmail(email);
+    }
+
+    @Override
+    public void updateUserInfo(UserModel user, LegacyUser legacyUser, RealmModel realm) {
+        userModelFactory.update(user, legacyUser, realm);
     }
 
     @Override
@@ -189,5 +217,44 @@ public class LegacyProvider implements UserStorageProvider,
     @Override
     public boolean removeUser(RealmModel realmModel, UserModel userModel) {
         return true;
+    }
+
+    public void getUserInfoFromOthers(UserModel user) {
+        boolean getFromOthers = Boolean.parseBoolean(
+            model.getConfig().getFirst(ConfigurationProperties.GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY)
+        );
+
+        if (!getFromOthers) {
+            return;
+        }
+
+        RealmModel realm = session.getContext().getRealm();
+
+        List<ComponentModel> providerModels = realm.getStorageProviders(UserStorageProvider.class).toList();
+        for (ComponentModel providerModel : providerModels) {
+            // Check that the provider is of our type, and that it's not this model
+            if (providerModel.getProviderId().equals(ConfigurationProperties.PROVIDER_NAME) && !model.getId().equals(providerModel.getId())) {
+                LOG.infof("Found provider named \"%s\" with ID: %s", providerModel.getName(), providerModel.getId());
+                // Using getProvider with providerModel is deprecated, but the replacement, getComponentProvider, always return null
+                LegacyUserStorageProvider legacyProvider = session.getProvider(LegacyUserStorageProvider.class, providerModel);
+
+                if (legacyProvider == null) {
+                    LOG.debug("Provider not found in session, trying to create");
+                    legacyProvider = new LegacyProviderFactory().create(session, providerModel);
+                }
+
+                if (legacyProvider != null) {
+                    LOG.debug("Have provider, getting user info");
+                    Optional<LegacyUser> legacyUser = legacyProvider.getLegacyUserInfo(user.getEmail());
+                    if (legacyUser.isPresent()) {
+                        legacyProvider.updateUserInfo(user, legacyUser.get(), realm);
+                    } else {
+                        LOG.infof("User with email \"%s\" was not found", user.getEmail());
+                    }
+                } else {
+                    LOG.info("Failed getting provider");
+                }
+            }
+        }
     }
 }

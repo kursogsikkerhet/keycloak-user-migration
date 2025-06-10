@@ -51,10 +51,9 @@ public class UserModelFactory {
     }
 
     public UserModel create(LegacyUser legacyUser, RealmModel realm) {
-        LOG.infof("Creating user model for: %s", legacyUser.username());
+        LOG.infof("Creating user model for: %s", legacyUser.email());
 
         UserModel userModel = addUser(legacyUser, realm);
-        validateUsernamesEqual(legacyUser, userModel);
         migrateBasicAttributes(legacyUser, userModel);
         migrateAdditionalAttributes(legacyUser, userModel);
         migrateRoles(legacyUser, realm, userModel);
@@ -65,42 +64,32 @@ public class UserModelFactory {
         return userModel;
     }
 
+    public void update(UserModel user, LegacyUser legacyUser, RealmModel realm) {
+        LOG.infof("Updating user model for: %s", user.getEmail());
+
+        migrateAdditionalAttributes(legacyUser, user);
+        migrateRoles(legacyUser, realm, user);
+        migrateGroups(legacyUser, realm, user);
+    }
+
     private UserModel addUser(LegacyUser legacyUser, RealmModel realm) {
-        UserModel userModel;
-        if (isEmpty(legacyUser.id())) {
-            userModel = addUserWithoutLegacyId(legacyUser, realm);
-        } else {
-            userModel = addUserWithLegacyId(legacyUser, realm);
+        boolean useEmail = Boolean.parseBoolean(model.getConfig().getFirst(USE_EMAIL_FOR_CREDENTIAL_VERIFICATION_PROPERTY));
+        boolean replaceUsername = Boolean.parseBoolean(model.getConfig().getFirst(USE_ID_AS_USERNAME_PROPERTY));
+
+        String userId = UUID.randomUUID().toString();
+        String userName = legacyUser.username();
+
+        if (useEmail && replaceUsername) {
+            userName = userId;
         }
-        return userModel;
-    }
 
-    private UserModel addUserWithoutLegacyId(LegacyUser legacyUser, RealmModel realm) {
-        UserModel userModel;
-        userModel = session.users().addUser(realm, legacyUser.username());
-        return userModel;
-    }
-
-    private UserModel addUserWithLegacyId(LegacyUser legacyUser, RealmModel realm) {
-        UserModel userModel;
-        boolean addDefaultRoles = true;
-        boolean dontAddDefaultRequiredActions = false;
-        userModel = session.users().addUser(
-                realm,
-                legacyUser.id(),
-                legacyUser.username(),
-                addDefaultRoles,
-                dontAddDefaultRequiredActions
+        return session.users().addUser(
+            realm,
+            userId,
+            userName,
+            true,
+            false
         );
-        return userModel;
-    }
-
-    private void validateUsernamesEqual(LegacyUser legacyUser, UserModel userModel) {
-        if (!userModel.getUsername().equals(legacyUser.username())) {
-            throw new IllegalStateException(String.format("Local and remote users differ: [%s != %s]",
-                    userModel.getUsername(),
-                    legacyUser.username()));
-        }
     }
 
     private void migrateBasicAttributes(LegacyUser legacyUser, UserModel userModel) {
