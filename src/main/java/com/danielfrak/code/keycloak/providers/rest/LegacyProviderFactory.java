@@ -15,8 +15,7 @@ import org.keycloak.storage.UserStorageProviderFactory;
 
 import java.util.List;
 
-import static com.danielfrak.code.keycloak.providers.rest.ConfigurationProperties.PROVIDER_NAME;
-import static com.danielfrak.code.keycloak.providers.rest.ConfigurationProperties.VALID_FOR_CLIENT_PROPERTY;
+import static com.danielfrak.code.keycloak.providers.rest.ConfigurationProperties.*;
 
 public class LegacyProviderFactory implements UserStorageProviderFactory<LegacyProvider> {
 
@@ -43,6 +42,20 @@ public class LegacyProviderFactory implements UserStorageProviderFactory<LegacyP
         String selectedClient = config.get(VALID_FOR_CLIENT_PROPERTY, "");
         if (!selectedClient.isEmpty() && realm.getClientByClientId(selectedClient) == null) {
             throw new ComponentValidationException(String.format("Client \"%s\" does not exist", selectedClient));
+        }
+
+        boolean restrictRoles = Boolean.parseBoolean(config.get(RESTRICT_ROLES_TO_CLIENT_PROPERTY, "false"));
+        if (restrictRoles && selectedClient.isEmpty()) {
+            throw new ComponentValidationException("Setting 'Restrict role actions to client' requires 'Valid for Client ID' to be set");
+        }
+
+        boolean preventRoleUpdate = Boolean.parseBoolean(config.get(PREVENT_ROLE_UPDATE_PROPERTY, "false"));
+        if (preventRoleUpdate && selectedClient.isEmpty()) {
+            throw new ComponentValidationException("Setting 'Prevent role update' requires 'Valid for Client ID' to be set");
+        }
+
+        if (preventRoleUpdate && !restrictRoles) {
+            throw new ComponentValidationException("Setting 'Prevent role update' requires 'Restrict role actions to client' to be enabled");
         }
     }
 }

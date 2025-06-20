@@ -14,7 +14,6 @@ import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.policy.PasswordPolicyManagerProvider;
 import org.keycloak.policy.PolicyError;
-import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserRegistrationProvider;
 
@@ -183,9 +182,7 @@ public class LegacyProvider implements LegacyUserStorageProvider,
                 })
                 .map(u -> {
                     u.attributes().put("Migration handler", List.of(model.getName()));
-                    UserModel newUser = userModelFactory.create(u, realm);
-                    getUserInfoFromOthers(newUser);
-                    return newUser;
+                    return userModelFactory.create(u, realm);
                 })
                 .orElseGet(() -> {
                     LOG.warnf("User not found in external repository: %s", username);
@@ -194,8 +191,13 @@ public class LegacyProvider implements LegacyUserStorageProvider,
     }
 
     @Override
-    public Optional<LegacyUser> getLegacyUserInfo(String email) {
-        return legacyUserService.findByEmail(email);
+    public Optional<LegacyUser> getLegacyUserInfo(UserModel user) {
+        Optional<LegacyUser> lUser = legacyUserService.findByKeycloakId(user.getId());
+        if (lUser.isEmpty()) {
+            lUser = legacyUserService.findByEmail(user.getEmail());
+        }
+
+        return lUser;
     }
 
     @Override
@@ -217,44 +219,5 @@ public class LegacyProvider implements LegacyUserStorageProvider,
     @Override
     public boolean removeUser(RealmModel realmModel, UserModel userModel) {
         return true;
-    }
-
-    public void getUserInfoFromOthers(UserModel user) {
-        boolean getFromOthers = Boolean.parseBoolean(
-            model.getConfig().getFirst(ConfigurationProperties.GET_USER_INFO_FROM_ALL_USER_MIGRATIONS_PROPERTY)
-        );
-
-        if (!getFromOthers) {
-            return;
-        }
-
-        RealmModel realm = session.getContext().getRealm();
-
-        List<ComponentModel> providerModels = realm.getStorageProviders(UserStorageProvider.class).toList();
-        for (ComponentModel providerModel : providerModels) {
-            // Check that the provider is of our type, and that it's not this model
-            if (providerModel.getProviderId().equals(ConfigurationProperties.PROVIDER_NAME) && !model.getId().equals(providerModel.getId())) {
-                LOG.infof("Found provider named \"%s\" with ID: %s", providerModel.getName(), providerModel.getId());
-                // Using getProvider with providerModel is deprecated, but the replacement, getComponentProvider, always return null
-                LegacyUserStorageProvider legacyProvider = session.getProvider(LegacyUserStorageProvider.class, providerModel);
-
-                if (legacyProvider == null) {
-                    LOG.debug("Provider not found in session, trying to create");
-                    legacyProvider = new LegacyProviderFactory().create(session, providerModel);
-                }
-
-                if (legacyProvider != null) {
-                    LOG.debug("Have provider, getting user info");
-                    Optional<LegacyUser> legacyUser = legacyProvider.getLegacyUserInfo(user.getEmail());
-                    if (legacyUser.isPresent()) {
-                        legacyProvider.updateUserInfo(user, legacyUser.get(), realm);
-                    } else {
-                        LOG.infof("User with email \"%s\" was not found", user.getEmail());
-                    }
-                } else {
-                    LOG.info("Failed getting provider");
-                }
-            }
-        }
     }
 }

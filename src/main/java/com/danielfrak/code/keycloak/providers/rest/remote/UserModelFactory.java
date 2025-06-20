@@ -68,8 +68,22 @@ public class UserModelFactory {
         LOG.infof("Updating user model for: %s", user.getEmail());
 
         migrateAdditionalAttributes(legacyUser, user);
-        migrateRoles(legacyUser, realm, user);
         migrateGroups(legacyUser, realm, user);
+
+        String validForClient = model.getConfig().getFirst(ConfigurationProperties.VALID_FOR_CLIENT_PROPERTY);
+        boolean restrictRoles = Boolean.parseBoolean(model.getConfig().getFirst(RESTRICT_ROLES_TO_CLIENT_PROPERTY));
+
+        if (!validForClient.isEmpty() && restrictRoles) {
+            ClientModel client = realm.getClientByClientId(validForClient);
+            boolean preventRoleUpdate = Boolean.parseBoolean(model.getConfig().getFirst(PREVENT_ROLE_UPDATE_PROPERTY));
+            boolean haveRole = user.getClientRoleMappingsStream(client).findAny().isPresent();
+
+            if (preventRoleUpdate && haveRole) {
+                return;
+            }
+        }
+
+        migrateRoles(legacyUser, realm, user);
     }
 
     private UserModel addUser(LegacyUser legacyUser, RealmModel realm) {
@@ -157,6 +171,7 @@ public class UserModelFactory {
      * Migrated only if present in the map or config enables this.
      * @see ConfigurationProperties#MIGRATE_UNMAPPED_ROLES_PROPERTY
      * @see ConfigurationProperties#VALID_FOR_CLIENT_PROPERTY
+     * @see ConfigurationProperties#RESTRICT_ROLES_TO_CLIENT_PROPERTY
      */
     private Optional<RoleModel> getMappedRoleModel(RealmModel realm, String roleName) {
         String validForClient = model.getConfig().getFirst(VALID_FOR_CLIENT_PROPERTY);

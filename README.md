@@ -349,6 +349,12 @@ can create roles, they will be created on the client.
 If disabled, or 'Valid for Client ID' is not set, roles in realm and all clients are used. If migration 
 can create roles, they will be created in the realm.
 
+### Prevent role update
+
+If the user does not have a role for the client it will be set.  
+Requires [`Valid for Client ID`](#valid-for-client-id) to be set,
+and [`Restrict role actions to client`](#restrict-role-actions-to-client) to be enabled. 
+
 ### Legacy group conversion
 
 If group names in Keycloak do not perfectly match those in the legacy system, you can configure the provider to
@@ -358,19 +364,6 @@ automatically map legacy groups to Keycloak groups, by specifying the mapping in
 
 This switch can be toggled to decide whether groups which are not defined in the legacy group conversion map should be
 migrated anyway or simply ignored.
-
-### Get additional user info from other migrations
-
-If having multiple legacy systems that users will be migrated from, and a user can have an account in several, this
-can be enabled to call other migrations, allowing them to get user info from the legacy system they are configured for,
-and update the Keycloak user. The call is done to the user info endpoint using the email address.
-The info that is set in Keycloak is:
- - Role
- - Group
- - Custom attributes
-
-It is recommended to have the migrations configured for a client, `Valid for Client ID`, and have setting
-`Restrict role actions to client` set to `On`.
 
 ## Totp
 
@@ -391,3 +384,41 @@ This module supports the migration of totp devices. The totp configuration block
 UTF-8 plaintext.
 For the utf8 bytes just set the `encoding` attribute to null.
 Possible `algorithm`s are: HmacSHA1, HmacSHA256, HmacSHA512
+
+# Keycloak Authentication Flow plugin
+
+If having multiple legacy systems that users will be migrated from, and a user can have an account in several, this
+can be added to the authentication flow to call other migrations, allowing them to get user info from the
+legacy system they are configured for, and update the Keycloak user. The call is done to the user info
+endpoint using the Keycloak ID or if that fails, the email address.
+
+The info that is updated in Keycloak is:
+- Role
+- Group
+- Custom attributes
+
+It is recommended to have the migrations configured for a client, [`Valid for Client ID`](#valid-for-client-id),
+and have setting [`Restrict role actions to client`](#restrict-role-actions-to-client) enabled. If using Keycloak
+as the authoritative source for roles, the setting [`Prevent role update`](#prevent-role-update) should be enabled
+in the migrations.
+
+## Adding to the authentication flow
+
+Select `Authentication` in the side menu, and duplicate the `browser` flow. Built-in flows cannot be changed. Provide
+a unique name and description and click `Duplicate`. Click the title of the duplicate to edit the flow.
+Locate `Copy of browser forms` and click the `+` icon on the line, select `Add step`. Select the `Userinfo updater` in
+the list and click `Add`. It will be added at the end of the `Copy of browser forms` step. On the `Userinfo updater`
+step change `Requirement` to `Requried`.
+
+## Using the flow
+
+### As default browser flow
+
+If you want to use the created flow as the default browser flow, click the menu for your custom browser flow and select
+`Bind flow`, select `Browser flow` and click `Save`.
+
+### For specific client
+
+Select `Clients` in the side menu, select a client that you want to use the flow for. Click the `Advanced` tab
+and scroll down to `Authentication flow overrides`. Select your custom browser flow in the `Browser Flow` dropdown and
+`Save`. Repeat for all clients that should use the custom browser flow.
