@@ -160,17 +160,21 @@ public class LegacyProvider implements LegacyUserStorageProvider,
 
     @Override
     public UserModel getUserByUsername(RealmModel realmModel, String username) {
-        return getUserModel(realmModel, username, () -> legacyUserService.findByUsername(username));
+        if (this.checkIfValidClientIfRestricted()) {
+            return getUserModel(realmModel, username, () -> legacyUserService.findByUsername(username));
+        }
+
+        return null;
+    }
+
+    private boolean checkIfValidClientIfRestricted() {
+        String restrictedClient = model.getConfig().getFirst(ConfigurationProperties.VALID_FOR_CLIENT_PROPERTY);
+        String sessionClient = session.getContext().getClient().getClientId();
+
+        return restrictedClient == null || restrictedClient.equals(sessionClient);
     }
 
     private UserModel getUserModel(RealmModel realm, String username, Supplier<Optional<LegacyUser>> user) {
-        String restrictedClient = model.getConfig().getFirst(ConfigurationProperties.VALID_FOR_CLIENT_PROPERTY);
-        String sessionClient = this.session.getContext().getClient().getClientId();
-
-        if (restrictedClient != null && !restrictedClient.equals(sessionClient)) {
-            return null;
-        }
-
         return user.get()
                 .filter(u -> {
                     // Make sure we're not trying to migrate users if they have changed their username
@@ -207,7 +211,11 @@ public class LegacyProvider implements LegacyUserStorageProvider,
 
     @Override
     public UserModel getUserByEmail(RealmModel realmModel, String email) {
-        return getUserModel(realmModel, email, () -> legacyUserService.findByEmail(email));
+        if (this.checkIfValidClientIfRestricted()) {
+            return getUserModel(realmModel, email, () -> legacyUserService.findByEmail(email));
+        }
+
+        return null;
     }
 
     @Override
